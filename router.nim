@@ -3,41 +3,45 @@ import strutils, tables, sets
 
 #define types in single nested type
 type
-  Router* = ref object
+  Router* = object
     root: PathNode
 
   PathNode = object #object or ref object. figure out children/handler
-    children: tables.Table[string, PathNode] #TABLES ARE GENERIC
+    children: Table[string, PathNode] #TABLES ARE GENERIC
     value: string
     #handler: Handler
 
   #Handler* = proc(req: nhttp.Request, res: nhttp.Response)
 
 
-# """proc initPathTree(this: Router) =
-#   var commentIdNode = new PathNode(value: "4", children: nil)
-#   var commentChildren = Set[PathNode*]
-#   commentChildren.init(&commentIdNode)
-#   var postsIdNode = new PathNode(value: "1", children: nil)
-#   var commentsNode = new PathNode(value: "comments")
-#   var postChildren =
-#   var postsNode = new PathNode(value: "posts" children: )"""
+proc handle(this: Router, req: string, res: string) =
+  echo "hi"
 
-# proc handle(this: Router, req: string, res: string) =
-#   echo "hi"
+proc addRoute(this: Router, currentNode: var PathNode, routeComponents: seq[string]) =
+  if len(routeComponents) == 0:
+    return
+  var currentComponent = routeComponents[0]
+  if(currentNode.children.hasKey(currentComponent)):
+    this.addRoute(currentNode.children[currentComponent], routeComponents[1..(routeComponents.len - 1)])
+  else:
+    var newNode = PathNode(children: initTable[string, PathNode](), value: currentComponent)
+    currentNode.children[currentComponent] = newNode
+    echo this.root
+    #echo currentNode
+    this.addRoute(newNode, routeComponents[1..(routeComponents.len - 1)])
 
-proc addRoute(this: Router, currentNode: PathNode, route: string) =
-  echo route
 
-proc initRoute(this: Router, route: string) =
-  this.addRoute(this.root, route)
+proc initRoute(this: var Router, route: string) =
+  var routeComponents = route.split("/")
+  this.addRoute(this.root, routeComponents)
 
-proc initRoutes(this: Router) =
-  this.initRoute("get/posts/comments/")
+proc initRoutes(this: var Router) =
+  this.initRoute("get/posts/comments")
 
 proc initRouter(): Router =
-  var result = Router()
-  result.root= PathNode(value: "root", children: initTable[string, PathNode]())
-  result.initRoutes()
+  var router = Router()
+  router.root = PathNode(value: "root", children: initTable[string, PathNode]())
+  router.initRoutes()
+  return router
 
 var router = initRouter()
