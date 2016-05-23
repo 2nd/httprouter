@@ -4,7 +4,7 @@ import strutils, tables, sets
 #define types in single nested type
 type
   Router* = ref object
-    routes : tables.Table[string, PathNode]
+    root: PathNode
 
   PathNode = object #object or ref object. figure out children/handler
     children: tables.Table[string, PathNode] #TABLES ARE GENERIC
@@ -23,28 +23,21 @@ type
 #   var postChildren =
 #   var postsNode = new PathNode(value: "posts" children: )"""
 
-proc traverseOrAdd(this: Router, httpAndRoute: string) =
-  let components = strutils.split(httpAndroute, "/")
-  
+# proc handle(this: Router, req: string, res: string) =
+#   echo "hi"
 
-proc initRoute(this: Router, route: string, httpMethod: string) =
-  this.traverseOrAdd(httpMethod & "/" & route)
+proc addRoute(this: Router, currentNode: PathNode, route: string) =
+  echo route
+
+proc initRoute(this: Router, route: string) =
+  this.addRoute(this.root, route)
 
 proc initRoutes(this: Router) =
-  this.initRoute("get", "/posts/comments/")
-  this.initRoute("get", "/posts/comments/4")
-  this.initRoute("post", "/posts")
-  this.initRoute("get", "/posts/1")
+  this.initRoute("get/posts/comments/")
 
+proc initRouter(): Router =
+  var result = Router()
+  result.root= PathNode(value: "root", children: initTable[string, PathNode]())
+  result.initRoutes()
 
-
-proc parse(this: Router, path: string) =
-  let components = strutils.split(path, "/")
-
-
-proc handle(this: Router, req: string, res: string) =
-  echo "hi"
-
-
-var router = new(Router)
-router.parse("hey/you")
+var router = initRouter()
