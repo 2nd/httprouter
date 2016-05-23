@@ -1,4 +1,4 @@
-import strutils, tables
+import strutils, tables, sequtils
 
 type
   Router = object
@@ -21,20 +21,22 @@ proc addRoute(this: Router, currentNode: var PathNode, routeComponents: seq[stri
     return
   var currentComponent = routeComponents[0]
   if(currentNode.children.hasKey(currentComponent)):
-    this.addRoute(currentNode.children[currentComponent], routeComponents[1..(routeComponents.len - 1)])
+    this.addRoute(currentNode.children[currentComponent], routeComponents[1..routeComponents.high()])
   else:
     var newNode = PathNode(children: initTable[string, PathNode](), value: currentComponent)
     currentNode.children[currentComponent] = newNode
-    this.addRoute(newNode, routeComponents[1..(routeComponents.len - 1)])
+    this.addRoute(newNode, routeComponents[1..routeComponents.high()])
 
 
-proc initRoute(this: var Router, route: string) =
-  var routeComponents = route.split("/")
-  this.addRoute(this.root, routeComponents)
+proc initRoute(this: var Router, action: string, path: string) =
+  var pathComponents = path.split("/")
+  pathComponents = pathComponents[1..pathComponents.high()]
+  echo pathComponents
+  this.addRoute(this.root, sequtils.concat(@[action], pathComponents))
 
 proc initRoutes(this: var Router) =
-  this.initRoute("get/posts/comments")
-  this.initRoute("get/posts/tags")
+  this.initRoute("get", "/posts/comments")
+  this.initRoute("get", "/posts/tags")
 
 proc initRouter(): Router =
   var router = Router()
