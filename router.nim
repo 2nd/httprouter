@@ -1,15 +1,14 @@
-import strutils, tables, sets
+import strutils, tables
 
-
-#define types in single nested type
 type
-  Router* = object
+  Router = object
     root: PathNode
 
-  PathNode = object #object or ref object. figure out children/handler
-    children: Table[string, PathNode] #TABLES ARE GENERIC
+  PathNode = ref object
+    children: Table[string, PathNode]
     value: string
     #handler: Handler
+
 
   #Handler* = proc(req: nhttp.Request, res: nhttp.Response)
 
@@ -26,8 +25,6 @@ proc addRoute(this: Router, currentNode: var PathNode, routeComponents: seq[stri
   else:
     var newNode = PathNode(children: initTable[string, PathNode](), value: currentComponent)
     currentNode.children[currentComponent] = newNode
-    echo this.root
-    #echo currentNode
     this.addRoute(newNode, routeComponents[1..(routeComponents.len - 1)])
 
 
@@ -37,6 +34,7 @@ proc initRoute(this: var Router, route: string) =
 
 proc initRoutes(this: var Router) =
   this.initRoute("get/posts/comments")
+  this.initRoute("get/posts/tags")
 
 proc initRouter(): Router =
   var router = Router()
@@ -44,4 +42,7 @@ proc initRouter(): Router =
   router.initRoutes()
   return router
 
+
 var router = initRouter()
+echo router.root.children["get"].children["posts"].children["comments"].value
+echo router.root.children["get"].children["posts"].children.len()
