@@ -17,8 +17,10 @@ type
   # proc handle(this: Router, req: string, res: string) =
   #   echo "hi"
 
+proc routeComponents(this: Router, methd: string, path: string): seq[string] =
+  result = (methd.toLower() & path).split("/")
+
 proc getHandler(this: Router, currentNode: PathNode, routeComponents: seq[string]): Handler =
-  echo routeComponents
   if len(routeComponents) == 0:
     return currentNode.handler
   var currentComponent = routeComponents[0]
@@ -30,8 +32,7 @@ proc getHandler(this: Router, currentNode: PathNode, routeComponents: seq[string
 proc handle(this: Router, request: nhttp.Request, response: nhttp.Response) =
   var path = request.uri.path
   var methd = request.m
-  echo path
-  var handler = this.getHandler(this.root, (methd.toLower() & path).split("/"))
+  var handler = this.getHandler(this.root, this.routeComponents(methd, path))
   handler(request, response)
 
 proc initNode(value: string, handler: Handler): PathNode =
@@ -50,7 +51,7 @@ proc addRoute(this: Router, currentNode: var PathNode, routeComponents: seq[stri
     this.addRoute(newNode, routeComponents[1..routeComponents.high()], handler)
 
 proc add(this: var Router, methd: string, path: string, handler: Handler) =
-  this.addRoute(this.root, (methd.toLower() & path).split("/"), handler)
+  this.addRoute(this.root, this.routeComponents(methd, path), handler)
 
 proc blahblah(req: nhttp.Request, res: nhttp.Response) =
   echo "hithurr"
