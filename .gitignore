@@ -6,3 +6,4 @@ response.nim
 scraps.nim
 nhttp_test.nim
 router_test
+scraps
