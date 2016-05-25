@@ -17,7 +17,9 @@ proc getHandler(this: Router, currentNode: PathNode, routeComponents: seq[string
     return currentNode.handler
   var currentComponent = routeComponents[0]
   if(currentNode.children.hasKey(currentComponent)):
-    return this.getHandler(currentNode.children[currentComponent], routeComponents[1..routeComponents.high()])
+    let slicedComponents = routeComponents[1..routeComponents.high()]
+    let child = currentNode.children[currentComponent]
+    return this.getHandler(child, slicedComponents)
   else:
     return this.notFound
 
@@ -32,7 +34,9 @@ proc addRoute(this: Router, currentNode: var PathNode, routeComponents: seq[stri
     return
   let currentComponent = routeComponents[0]
   if(currentNode.children.hasKey(currentComponent)):
-    this.addRoute(currentNode.children[currentComponent], routeComponents[1..routeComponents.high()], handler)
+    var child = currentNode.children[currentComponent]
+    let slicedComponents = routeComponents[1..routeComponents.high()]
+    this.addRoute(child, slicedComponents, handler)
   else:
     var newNode = initNode(currentComponent, handler)
     currentNode.children[currentComponent] = newNode
@@ -48,5 +52,6 @@ proc add*(this: var Router, methd: string, path: string, handler: Handler) =
   this.addRoute(this.root, this.routeComponents(methd, path), handler)
 
 proc initRouter*(notFound: Handler): Router =
-  result.root = PathNode(value: "root", children: tables.initTable[string, PathNode]())
+  var children = tables.initTable[string, PathNode]()
+  result.root = PathNode(value: "root", children: children )
   result.notFound = notFound
