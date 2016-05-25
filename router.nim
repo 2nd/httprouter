@@ -30,7 +30,7 @@ proc routeComponents(this: Router, methd: string, path: string): seq[string] =
 proc addRoute(this: Router, currentNode: var PathNode, routeComponents: seq[string], handler: Handler) =
   if len(routeComponents) == 0:
     return
-  var currentComponent = routeComponents[0]
+  let currentComponent = routeComponents[0]
   if(currentNode.children.hasKey(currentComponent)):
     this.addRoute(currentNode.children[currentComponent], routeComponents[1..routeComponents.high()], handler)
   else:
@@ -39,9 +39,9 @@ proc addRoute(this: Router, currentNode: var PathNode, routeComponents: seq[stri
     this.addRoute(newNode, routeComponents[1..routeComponents.high()], handler)
 
 proc handle*(this: Router, request: nhttp.Request, response: nhttp.Response) =
-  var path = request.uri.path
-  var methd = request.m
-  var handler = this.getHandler(this.root, this.routeComponents(methd, path))
+  let path = request.uri.path
+  let methd = request.m
+  let handler = this.getHandler(this.root, this.routeComponents(methd, path))
   handler(request, response)
 
 proc add*(this: var Router, methd: string, path: string, handler: Handler) =
