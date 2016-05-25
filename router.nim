@@ -12,11 +12,13 @@ type
 
   Handler* = proc(request: nhttp.Request, response: nhttp.Response)
 
-proc getHandler(this: Router, currentNode: PathNode, routeComponents: seq[string]): Handler =
+proc getHandler(this: Router, currentNode: PathNode,
+                routeComponents: seq[string]): Handler =
   if len(routeComponents) == 0:
     return currentNode.handler
   var currentComponent = routeComponents[0]
-  if(currentNode.children.hasKey(currentComponent)):
+  let child = currentNode.children.getOrDefault(currentComponent)
+  if(child != nil):
     let slicedComponents = routeComponents[1..routeComponents.high()]
     let child = currentNode.children[currentComponent]
     return this.getHandler(child, slicedComponents)
@@ -24,17 +26,19 @@ proc getHandler(this: Router, currentNode: PathNode, routeComponents: seq[string
     return this.notFound
 
 proc initNode(value: string, handler: Handler): PathNode =
-  result = PathNode(value: value, children: tables.initTable[string, PathNode](), handler: handler)
+  var children = tables.initTable[string, PathNode]()
+  result = PathNode(value: value, children: children, handler: handler )
 
 proc routeComponents(this: Router, methd: string, path: string): seq[string] =
   result = (methd.toLower() & path).split("/")
 
-proc addRoute(this: Router, currentNode: var PathNode, routeComponents: seq[string], handler: Handler) =
+proc addRoute(this: Router, currentNode: var PathNode,
+              routeComponents: seq[string], handler: Handler) =
   if len(routeComponents) == 0:
     return
   let currentComponent = routeComponents[0]
-  if(currentNode.children.hasKey(currentComponent)):
-    var child = currentNode.children[currentComponent]
+  var child = currentNode.children.getOrDefault(currentComponent)
+  if(child != nil):
     let slicedComponents = routeComponents[1..routeComponents.high()]
     this.addRoute(child, slicedComponents, handler)
   else:
@@ -53,5 +57,5 @@ proc add*(this: var Router, methd: string, path: string, handler: Handler) =
 
 proc initRouter*(notFound: Handler): Router =
   var children = tables.initTable[string, PathNode]()
-  result.root = PathNode(value: "root", children: children )
+  result.root = PathNode(value: "root", children: children)
   result.notFound = notFound
