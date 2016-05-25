@@ -4,3 +4,5 @@ nimcache
 request.nim
 response.nim
 scraps.nim
+nhttp_test.nim
+router_test
