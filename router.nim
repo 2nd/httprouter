@@ -4,6 +4,7 @@ type
   Router* = object
     root: PathNode
     notFound*: Handler
+    error*: Handler
 
   PathNode = ref object
     children: Table[string, PathNode]
@@ -53,12 +54,16 @@ proc handle*(this: Router, request: nhttp.Request, response: nhttp.Response) =
   let path = request.uri.path
   let methd = request.m
   let handler = this.getHandler(this.routeComponents(methd, path))
-  handler(request, response)
+  try:
+    handler(request, response)
+  except:
+    this.error(request, response)
 
 proc add*(this: var Router, methd: string, path: string, handler: Handler) =
   this.addRoute(this.routeComponents(methd, path), handler)
 
-proc initRouter*(notFound: Handler): Router =
+proc initRouter*(notFound: Handler, error: Handler): Router =
   var children = tables.initTable[string, PathNode]()
   result.root = PathNode(value: "root", children: children)
   result.notFound = notFound
+  result.error = error

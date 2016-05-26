@@ -1,5 +1,13 @@
 import router, nhttp, unittest, uri
 
+proc error(request: nhttp.Request, response: nhttp.Response) =
+  request.body = "error"
+
+proc handlerWithError(request: nhttp.Request, response: nhttp.Response) =
+  var x = @[1, 2, 3]
+  echo x[3]
+  request.body = "handler with error failure"
+
 proc notFound(request: nhttp.Request, response: nhttp.Response) =
   request.body = "not found"
 
@@ -24,7 +32,7 @@ proc postUsersCommentsHandler(request: nhttp.Request, response: nhttp.Response) 
 suite "router":
 
   test "adding and retrieving single route":
-    var testRouter = router.initRouter(notFound)
+    var testRouter = router.initRouter(notFound, error)
     testRouter.add("GET", "/users/comments", getUsersCommentsHandler)
     var requestUri = uri.parseUri("http://example.com/users/comments")
     var request = nhttp.Request(uri: requestUri, m: "GET")
@@ -33,7 +41,7 @@ suite "router":
     check(request.body == "get users comments success")
 
   test "adding and retrieving two routes with same initial path component":
-    var testRouter = router.initRouter(notFound)
+    var testRouter = router.initRouter(notFound, error)
     testRouter.add("GET", "/users/comments", getUsersCommentsHandler)
     testRouter.add("GET", "/users/photos", getUsersPhotosHandler)
     var requestUri = uri.parseUri("http://example.com/users/comments")
@@ -47,7 +55,7 @@ suite "router":
     check(request.body == "get users photos success")
 
   test "adding and retrieving two routes with same path and different method":
-    var testRouter = router.initRouter(notFound)
+    var testRouter = router.initRouter(notFound, error)
     testRouter.add("GET", "/users/comments", getUsersCommentsHandler)
     testRouter.add("POST", "/users/comments", postUsersCommentsHandler)
     var requestUri = uri.parseUri("http://example.com/users/comments")
@@ -61,7 +69,7 @@ suite "router":
     check(request.body == "get users comments success")
 
   test "adding and retrieving two routes with same path names on different levels":
-    var testRouter = router.initRouter(notFound)
+    var testRouter = router.initRouter(notFound, error)
     testRouter.add("GET", "/users", getUsersHandler)
     testRouter.add("GET", "/users/users", getUsersUsersHandler)
     var requestUri = uri.parseUri("http://example.com/users")
@@ -75,10 +83,19 @@ suite "router":
     check(request.body == "get users users success")
 
   test "adding and retrieving root route":
-    var testRouter = router.initRouter(notFound)
+    var testRouter = router.initRouter(notFound, error)
     testRouter.add("GET", "/", rootGetHandler)
     var requestUri = uri.parseUri("http://example.com/")
     var request = nhttp.Request(uri: requestUri, m: "GET")
     var response = nhttp.Response()
     testRouter.handle(request, response)
     check(request.body == "root get success")
+
+  test "catching an error in handler and calling error handler":
+    var testRouter = router.initRouter(notFound, error)
+    testRouter.add("GET", "/error", handlerWithError)
+    var requestUri = uri.parseUri("http://example.com/error")
+    var request = nhttp.Request(uri: requestUri, m: "GET")
+    var response = nhttp.Response()
+    testRouter.handle(request, response)
+    check(request.body == "error")
