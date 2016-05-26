@@ -13,23 +13,34 @@ type
 
   Handler* = proc(request: nhttp.Request, response: nhttp.Response)
 
-proc debug(this: PathNode, depth: int) =
+proc debug*(this: PathNode, depth: int) =
   echo "  ".repeat(depth), this.value, " has handler: ", not this.handler.isNil
   for node in this.children.values:
     node.debug(depth + 1)
 
-proc debug(this: Router) =
+proc debug*(this: Router) =
   echo "Router has not-found handler: ", not this.notFound.isNil
+  echo "Router has error handler: ", not this.error.isNil
   this.root.debug(0)
+
+proc findOrDefault(this: PathNode, condition: proc(s: string): bool): PathNode =
+  for key, value in this.children.pairs:
+    if condition(key):
+      return value
+  return nil
 
 proc getHandler(this: Router, routeComponents: seq[string]): Handler =
   var currentNode = this.root
   for i, routeComponent in routeComponents:
     var child = currentNode.children.getOrDefault(routeComponent)
     if child.isNil:
-      return this.notFound
+      child = currentNode.findOrDefault(proc(s: string): bool = s.startsWith(":"))
+      if child.isNil:
+        return this.notFound
     if i == routeComponents.len() - 1:
-      return child.handler
+      if not child.handler.isNil:
+        return child.handler
+      return this.notFound 
     currentNode = child
 
 proc initNode(value: string, handler: Handler): PathNode =
@@ -51,10 +62,10 @@ proc addRoute(this: Router, routeComponents: seq[string], handler: Handler) =
     currentNode = child
 
 proc handle*(this: Router, request: nhttp.Request, response: nhttp.Response) =
-  let path = request.uri.path
-  let methd = request.m
-  let handler = this.getHandler(this.routeComponents(methd, path))
   try:
+    let path = request.uri.path
+    let methd = request.m
+    let handler = this.getHandler(this.routeComponents(methd, path))
     handler(request, response)
   except:
     this.error(request, response)

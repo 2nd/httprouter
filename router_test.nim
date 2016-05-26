@@ -1,4 +1,4 @@
-import router, nhttp, unittest, uri
+import router, nhttp, unittest, uri, tables
 
 proc error(request: nhttp.Request, response: nhttp.Response) =
   request.body = "error"
@@ -13,6 +13,9 @@ proc notFound(request: nhttp.Request, response: nhttp.Response) =
 
 proc rootGetHandler(request: nhttp.Request, response: nhttp.Response) =
   request.body = "root get success"
+
+proc getUsersParameterHandler(request: nhttp.Request, response: nhttp.Response) =
+  request.body = "get users parameter success"
 
 proc getUsersHandler(request: nhttp.Request, response: nhttp.Response) =
   request.body = "get users success"
@@ -99,3 +102,34 @@ suite "router":
     var response = nhttp.Response()
     testRouter.handle(request, response)
     check(request.body == "error")
+
+  test "adding and retrieving a route with a parameter":
+    var testRouter = router.initRouter(notFound, error)
+    testRouter.add("GET", "/users/:id", getUsersParameterHandler)
+    var requestUri = uri.parseUri("http://example.com/users/100")
+    var request = nhttp.Request(uri: requestUri, m: "GET")
+    var response = nhttp.Response()
+    testRouter.handle(request, response)
+    check(request.body == "get users parameter success")
+    requestUri = uri.parseUri("http://example.com/users")
+    request = nhttp.Request(uri: requestUri, m: "GET")
+    testRouter.handle(request, response)
+    check(request.body == "not found")
+
+  test "retrieving not found if a route terminates on a node with no handler":
+    var testRouter = router.initRouter(notFound, error)
+    testRouter.add("GET", "/users/comments", getUsersCommentsHandler)
+    var requestUri = uri.parseUri("http://example.com/users")
+    var request = nhttp.Request(uri: requestUri, m: "GET")
+    var response = nhttp.Response()
+    testRouter.handle(request, response)
+    check(request.body == "not found")
+
+  test "retrieving not found if a route is invalid":
+    var testRouter = router.initRouter(notFound, error)
+    testRouter.add("GET", "/users/comments", getUsersCommentsHandler)
+    var requestUri = uri.parseUri("http://example.com/users/commentss")
+    var request = nhttp.Request(uri: requestUri, m: "GET")
+    var response = nhttp.Response()
+    testRouter.handle(request, response)
+    check(request.body == "not found")
