@@ -2,22 +2,22 @@ import strutils, tables, nhttp, uri
 
 type
   Router* = object
-    root*: PathNode
+    root: PathNode
     notFound*: Handler
 
-  PathNode* = ref object
-    children*: Table[string, PathNode]
-    value*: string
-    handler*: Handler
+  PathNode = ref object
+    children: Table[string, PathNode]
+    value: string
+    handler: Handler
 
   Handler* = proc(request: nhttp.Request, response: nhttp.Response)
 
-proc debug*(this: PathNode, depth: int) =
+proc debug(this: PathNode, depth: int) =
   echo "  ".repeat(depth), this.value, " has handler: ", not this.handler.isNil
   for node in this.children.values:
     node.debug(depth + 1)
 
-proc debug*(this: Router) =
+proc debug(this: Router) =
   echo "Router has not-found handler: ", not this.notFound.isNil
   this.root.debug(0)
 

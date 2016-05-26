@@ -1,4 +1,4 @@
-import router, nhttp, unittest, uri, typetraits, tables
+import router, nhttp, unittest, uri
 
 proc notFound(request: nhttp.Request, response: nhttp.Response) =
   request.body = "not found"
