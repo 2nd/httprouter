@@ -49,6 +49,7 @@ suite "router":
   test "adding and retrieving route with same words back to back":
     testRouter.add("GET", "/users/users", getUsersUsersHandler)
     testRouter.add("GET", "/users", getUsersHandler)
+    testRouter.debug()
     # var testRequestURI = uri.parseURI("http://example.com/users")
     # var testRequest = nhttp.Request(uri: testRequestURI, m: "GET")
     # testRouter.handle(testRequest, testResponse)
@@ -59,6 +60,7 @@ suite "router":
 
 
   test "invoking not found for invalid routes":
+    echo "hi"
     # var badTestRequestURI = uri.parseURI("http://example.com/posts/comment")
     # var badTestRequest = nhttp.Request(uri: badTestRequestURI, m: "GET")
     # testRouter.handle(badTestRequest, testResponse)
@@ -67,12 +69,12 @@ suite "router":
     # badTestRequest = nhttp.Request(uri: badTestRequestURI, m: "GET")
     # testRouter.handle(badTestRequest, testResponse)
     # check(badTestRequest.body == "not found")
-    var badTestRequestURI = uri.parseURI("http://example.com/")
-    var badTestRequest = nhttp.Request(uri: badTestRequestURI, m: "GET")
-    testRouter.handle(badTestRequest, testResponse)
-    echo "++++++++"
-    echo badTestRequest.body
-    check(badTestRequest.body == "not found")
+    # var badTestRequestURI = uri.parseURI("http://example.com/")
+    # var badTestRequest = nhttp.Request(uri: badTestRequestURI, m: "GET")
+    # testRouter.handle(badTestRequest, testResponse)
+    # echo "++++++++"
+    # echo badTestRequest.body
+    # check(badTestRequest.body == "not found")
 
   test "adding and retrieving root route":
     echo "hi"
