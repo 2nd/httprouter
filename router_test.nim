@@ -1,4 +1,4 @@
-import router, nhttp, unittest, uri
+import router, nhttp, unittest, uri, typetraits, tables
 
 proc notFound(request: nhttp.Request, response: nhttp.Response) =
   request.body = "not found"
@@ -24,66 +24,15 @@ proc getUsersCommentsHandler(request: nhttp.Request, response: nhttp.Response) =
 proc postUsersCommentsHandler(request: nhttp.Request, response: nhttp.Response) =
   request.body = "post users comments success"
 
-var testRouter = router.initRouter(notFound)
-let testResponse = nhttp.Response()
-
 suite "router":
 
-  test "adding and retrieving route":
-    echo "hi"
-    # testRouter.add("GET", "/users/comments", getUsersCommentsHandler)
-    # testRouter.add("POST", "/users/comments", postUsersCommentsHandler)
-    # testRouter.add("GET", "/users/comments/func", getUsersCommentsFuncHandler)
-    # var testRequestURI = uri.parseUri("http://example.com/users/comments")
-    # var testRequest = nhttp.Request(uri: testRequestURI, m: "GET" )
-    # testRouter.handle(testRequest, testResponse)
-    # check(testRequest.body == "get users comments success")
-    # testRequest = nhttp.Request(uri: testRequestURI, m: "POST")
-    # testRouter.handle(testRequest, testResponse)
-    # check(testRequest.body == "post users comments success")
-    # testRequestURI = uri.parseUri("http://example.com/users/comments/func")
-    # testRequest = nhttp.Request(uri: testRequestURI, m: "GET")
-    # testRouter.handle(testRequest, testResponse)
-    # check(testRequest.body == "get users comments func success")
+  test "adding and retrieving single route":
+    var testRouter = router.initRouter(notFound)
+    testRouter.add("GET", "/users/comments", getUsersCommentsHandler)
+    var requestUri = uri.parseUri("http://example.com/users/comments")
+    var request = nhttp.Request(uri: requestUri, m: "GET")
+    var response = nhttp.Response()
+    testRouter.handle(request, response)
+    check(request.body == "get users comments success")
 
-  test "adding and retrieving route with same words back to back":
-    testRouter.add("GET", "/users/users", getUsersUsersHandler)
-    testRouter.add("GET", "/users", getUsersHandler)
-    testRouter.debug()
-    # var testRequestURI = uri.parseURI("http://example.com/users")
-    # var testRequest = nhttp.Request(uri: testRequestURI, m: "GET")
-    # testRouter.handle(testRequest, testResponse)
-    # check(testRequest.body == "get users success")
-
-  test "adding a path without a slash returns an error":
-    echo "hi"
-
-
-  test "invoking not found for invalid routes":
-    echo "hi"
-    # var badTestRequestURI = uri.parseURI("http://example.com/posts/comment")
-    # var badTestRequest = nhttp.Request(uri: badTestRequestURI, m: "GET")
-    # testRouter.handle(badTestRequest, testResponse)
-    # check(badTestRequest.body == "not found")
-    # badTestRequestURI = uri.parseURI("http://example.com//")
-    # badTestRequest = nhttp.Request(uri: badTestRequestURI, m: "GET")
-    # testRouter.handle(badTestRequest, testResponse)
-    # check(badTestRequest.body == "not found")
-    # var badTestRequestURI = uri.parseURI("http://example.com/")
-    # var badTestRequest = nhttp.Request(uri: badTestRequestURI, m: "GET")
-    # testRouter.handle(badTestRequest, testResponse)
-    # echo "++++++++"
-    # echo badTestRequest.body
-    # check(badTestRequest.body == "not found")
-
-  test "adding and retrieving root route":
-    echo "hi"
-    # testrouter.add("get", "/", rootGetHandler)
-    # testRouter.add("post", "/", rootPostHandler)
-    # let rootRequestURI = uri.parseURI("http://example.com/")
-    # var rootRequest = nhttp.Request(uri: rootRequestURI, m: "GET")
-    # testRouter.handle(rootRequest, testResponse)
-    # check(rootRequest.body == "root get success")
-    # rootRequest = nhttp.Request(uri: rootRequestURI, m: "POST")
-    # testRouter.handle(rootRequest, testResponse)
-    # check(rootRequest.body == "root post success")
+  
