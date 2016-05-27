@@ -50,7 +50,7 @@ proc getHandler(this: Router, routeComponents: seq[string], request: nhttp.Reque
     currentNode = child
 
 proc initNode(value: string, handler: Handler): PathNode =
-  var children = tables.initTable[string, PathNode]()
+  let children = tables.initTable[string, PathNode]()
   result = PathNode(value: value, children: children, handler: handler )
 
 proc routeComponents(this: Router, methd: string, path: string): seq[string] =
@@ -83,7 +83,7 @@ proc add*(this: var Router, methd: string, path: string, handler: Handler) =
 #   request.body = "404", error: Handler = proc (request: nhttp.Request, response: nhttp.Response) =
 #     request.body = "500"): Router =
 proc initRouter*(notFound: Handler = defaultNotFound, error: Handler = defaultError): Router =
-  var children = tables.initTable[string, PathNode]()
+  let children = tables.initTable[string, PathNode]()
   result.root = PathNode(value: "root", children: children)
   result.notFound = notFound
   result.error = error
