@@ -108,6 +108,7 @@ suite "router":
   test "adding and retrieving a route with a parameter":
     var testRouter = router.initRouter(notFound, error)
     testRouter.add("GET", "/users/:id", getUsersParameterHandler)
+    testRouter.debug()
     var requestUri = uri.parseUri("http://example.com/users/100")
     var request = nhttp.Request(uri: requestUri, m: "GET")
     var response = nhttp.Response()

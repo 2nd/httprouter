@@ -10,6 +10,7 @@ type
     children: Table[string, PathNode]
     value: string
     handler: Handler
+    parameters: Table[string, string]
 
   Handler* = proc(request: nhttp.Request, response: nhttp.Response)
 
@@ -20,7 +21,11 @@ proc defaultError*(request: nhttp.Request, response: nhttp.Response) {.procvar.}
   request.body = "500"
 
 proc debug*(this: PathNode, depth: int) =
+  echo "-------------"
   echo "  ".repeat(depth), this.value, " has handler: ", not this.handler.isNil
+  echo "  ".repeat(depth), this.value, " parameters: "
+  for key in this.parameters.keys():
+    echo "  ".repeat(depth + 1), key
   for node in this.children.values:
     node.debug(depth + 1)
 
@@ -51,17 +56,20 @@ proc getHandler(this: Router, routeComponents: seq[string], request: nhttp.Reque
 
 proc initNode(value: string, handler: Handler): PathNode =
   let children = tables.initTable[string, PathNode]()
-  result = PathNode(value: value, children: children, handler: handler )
+  let parameters = tables.initTable[string, string]()
+  result = PathNode(value: value, children: children, handler: handler, parameters: parameters)
 
 proc routeComponents(this: Router, methd: string, path: string): seq[string] =
   result = (methd.toUpper() & path).split("/")
 
 proc addRoute(this: Router, routeComponents: seq[string], handler: Handler) =
   var currentNode = this.root
-  for i, routeComponent in routecomponents:
+  for i, routeComponent in routeComponents:
     var child = currentNode.children.getOrDefault(routeComponent)
     if child.isNil:
       child = initNode(routeComponent, nil)
+      if routeComponent.startsWith(":"):
+        currentNode.parameters[routeComponent] = routeComponent
     if i == routeComponents.len() - 1:
       child.handler = handler
     currentNode.children[routeComponent] = child
@@ -79,11 +87,12 @@ proc handle*(this: Router, request: nhttp.Request, response: nhttp.Response) =
 proc add*(this: var Router, methd: string, path: string, handler: Handler) =
   this.addRoute(this.routeComponents(methd, path), handler)
 
-# proc initRouter*(notFound: Handler = proc(request: nhttp.Request, response: nhttp.Response) =
-#   request.body = "404", error: Handler = proc (request: nhttp.Request, response: nhttp.Response) =
-#     request.body = "500"): Router =
 proc initRouter*(notFound: Handler = defaultNotFound, error: Handler = defaultError): Router =
   let children = tables.initTable[string, PathNode]()
   result.root = PathNode(value: "root", children: children)
   result.notFound = notFound
   result.error = error
+
+var router = initRouter()
+router.add("GET", "/users/:id/hey", defaultNotFound)
+router.debug()
