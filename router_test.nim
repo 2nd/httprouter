@@ -32,6 +32,8 @@ proc getUsersCommentsHandler(request: nhttp.Request, response: nhttp.Response) =
 proc postUsersCommentsHandler(request: nhttp.Request, response: nhttp.Response) =
   request.body = "post users comments success"
 
+
+
 suite "router":
 
   test "adding and retrieving single route":
@@ -138,3 +140,21 @@ suite "router":
     var testRouter = router.initRouter(notFound, error)
     testRouter.add("GET", "/users//comments/", getUsersCommentsHandler)
     testRouter.debug()
+
+  test "getting default not found when not specifying a handler":
+    var testRouter = router.initRouter()
+    testRouter.add("GET", "/users/comments", getUsersCommentsHandler)
+    var requestUri = uri.parseUri("http://example.com/users/commentss")
+    var request = nhttp.Request(uri: requestUri, m: "GET")
+    var response = nhttp.Response()
+    testRouter.handle(request, response)
+    check(request.body == "404")
+
+  test "getting default error when not specifying a handler":
+    var testRouter = router.initRouter()
+    testRouter.add("GET", "/users/comments", handlerWithError)
+    var requestUri = uri.parseUri("http://example.com/users/comments")
+    var request = nhttp.Request(uri: requestUri, m: "GET")
+    var response = nhttp.Response()
+    testRouter.handle(request, response)
+    check(request.body == "500")
