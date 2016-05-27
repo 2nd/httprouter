@@ -133,3 +133,8 @@ suite "router":
     var response = nhttp.Response()
     testRouter.handle(request, response)
     check(request.body == "not found")
+
+  test "what happens when you do slashes":
+    var testRouter = router.initRouter(notFound, error)
+    testRouter.add("GET", "/users//comments/", getUsersCommentsHandler)
+    testRouter.debug()
