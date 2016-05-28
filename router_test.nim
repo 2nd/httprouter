@@ -115,9 +115,8 @@ suite "router":
   test "adding and retrieving a route with a parameter":
     var testRouter = router.initRouter(notFound, error)
     testRouter.add("GET", "/users/:id", getUsersParameterHandler)
-    testRouter.debug()
     var requestUri = uri.parseUri("http://example.com/users/100")
-    var request = nhttp.Request(uri: requestUri, m: "GET")
+    var request = nhttp.Request(uri: requestUri, m: "GET", parameters: strtabs.newStringTable(strtabs.modeCaseInsensitive))
     var socket = new(net.Socket)
     var response = newResponse(socket)
     testRouter.handle(request, response)
@@ -146,28 +145,3 @@ suite "router":
     var response = newResponse(socket)
     testRouter.handle(request, response)
     check(request.body == "not found")
-
-  test "what happens when you do slashes":
-    var testRouter = router.initRouter(notFound, error)
-    testRouter.add("GET", "/users//comments/", getUsersCommentsHandler)
-    testRouter.debug()
-
-  test "getting default not found when not specifying a handler":
-    var testRouter = router.initRouter()
-    testRouter.add("GET", "/users/comments", getUsersCommentsHandler)
-    var requestUri = uri.parseUri("http://example.com/users/commentss")
-    var request = nhttp.Request(uri: requestUri, m: "GET")
-    var socket = new(net.Socket)
-    var response = newResponse(socket)
-    testRouter.handle(request, response)
-    #check(request.body == "404")
-
-  test "getting default error when not specifying a handler":
-    var testRouter = router.initRouter()
-    testRouter.add("GET", "/users/comments", handlerWithError)
-    var requestUri = uri.parseUri("http://example.com/users/comments")
-    var request = nhttp.Request(uri: requestUri, m: "GET")
-    var socket = new(net.Socket)
-    var response = newResponse(socket)
-    testRouter.handle(request, response)
-    #check(request.body == "500")
