@@ -108,7 +108,7 @@ proc handle*(this: Router, request: nhttp.Request, response: nhttp.Response) =
       this.notFound(request, response)
     else:
       for i, parameter in routeInfo.parameters:
-        request.parameters[parameter] = routeInfo.pathNode.parameters[i]
+        request.parameters[routeInfo.pathNode.parameters[i]] = parameter
       routeInfo.pathNode.handler(request, response)
   except:
     this.error(request, response)

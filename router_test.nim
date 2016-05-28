@@ -121,6 +121,7 @@ suite "router":
     var response = newResponse(socket)
     testRouter.handle(request, response)
     check(request.body == "get users parameter success")
+    check(request.parameters[":id"] == "100")
     requestUri = uri.parseUri("http://example.com/users")
     request = nhttp.Request(uri: requestUri, m: "GET")
     testRouter.handle(request, response)
