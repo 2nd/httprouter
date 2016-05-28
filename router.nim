@@ -15,10 +15,10 @@ type
   Handler* = proc(request: nhttp.Request, response: nhttp.Response)
 
 proc defaultNotFound*(request: nhttp.Request, response: nhttp.Response) {.procvar.} =
-  request.body = "404"
+  response.write(500)
 
 proc defaultError*(request: nhttp.Request, response: nhttp.Response) {.procvar.} =
-  request.body = "500"
+  response.write(500)
 
 proc debug*(this: PathNode, depth: int) =
   echo "-------------"
