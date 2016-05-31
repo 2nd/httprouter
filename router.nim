@@ -29,13 +29,13 @@ type
 proc getChild(this: PathNode, key: string): PathNode {.inline} =
   result = this.children.getOrDefault(key)
 
-proc initNode(value: string, handler: Handler): PathNode =
+proc initNode(value: string, handler: Handler = nil): PathNode =
   let children = tables.initTable[string, PathNode]()
   let parameterNames = newSeq[string]()
   result = PathNode(value: value, children: children, handler: handler,
                     parameterNames: parameterNames)
 
-proc isLast(this: seq[string], i: int): bool =
+proc isLast(this: seq[string], i: int): bool {.inline} =
   result = i == this.len() - 1
 
 proc isParameter(this: string): bool =
@@ -51,10 +51,10 @@ proc addRoute(this: Router, routeComponents: seq[string], handler: Handler) =
         parameterNames.add(routeComponent)
         child = currentNode.getChild(PARAMETER_KEYWORD)
         if child.isNil():
-          child = initNode(PARAMETER_KEYWORD, nil)
+          child = initNode(PARAMETER_KEYWORD)
           currentNode.children[PARAMETER_KEYWORD] = child
       else:
-        child = initNode(routeComponent, nil)
+        child = initNode(routeComponent)
         currentNode.children[routeComponent] = child
     if routeComponents.isLast(i):
       child.handler = handler
