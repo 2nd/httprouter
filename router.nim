@@ -26,7 +26,7 @@ type
   Handler* = proc(request: nhttp.Request, response: nhttp.Response)
 
 #PRIVATE
-proc getChild(this: PathNode, key: string): PathNode =
+proc getChild(this: PathNode, key: string): PathNode {.inline} =
   result = this.children.getOrDefault(key)
 
 proc initNode(value: string, handler: Handler): PathNode =
@@ -34,6 +34,10 @@ proc initNode(value: string, handler: Handler): PathNode =
   let parameterNames = newSeq[string]()
   result = PathNode(value: value, children: children, handler: handler,
                     parameterNames: parameterNames)
+
+proc isLast(this: seq[string], i: int): bool =
+  result = i == this.len() - 1
+
 proc isParameter(this: string): bool =
   result = this.startsWith(PARAMETER_PREFIX)
 
@@ -52,16 +56,13 @@ proc addRoute(this: Router, routeComponents: seq[string], handler: Handler) =
       else:
         child = initNode(routeComponent, nil)
         currentNode.children[routeComponent] = child
-    if i == routeComponents.len() - 1:
+    if routeComponents.isLast(i):
       child.handler = handler
       child.parameterNames = parameterNames
     currentNode = child
 
-proc hasHandler(this: PathNode): bool =
+proc hasHandler(this: PathNode): bool {.inline} =
   result = not this.handler.isNil()
-
-proc isLast(this: seq[string], i: int): bool =
-  result = i == this.len() - 1
 
 proc getRouteInfo(this: Router, routeComponents: seq[string],
                   request: nhttp.Request): RouteInfo =
@@ -84,7 +85,6 @@ proc nthParameterName(this: RouteInfo, n: int): string =
   result = this.pathnode.parameterNames[n]
 
 #PUBLIC
-
 proc add*(this: var Router, methd: string, path: string, handler: Handler) =
   let routeComponents = (methd.toUpper() & path).split(PATH_SEPARATOR)
   this.addRoute(routeComponents, handler)
