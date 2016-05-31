@@ -27,7 +27,7 @@ type
 
 proc debug*(this: PathNode, depth: int) =
   echo "-------------"
-  echo "  ".repeat(depth), this.value, " has handler: ", not this.handler.isNil
+  echo "  ".repeat(depth), this.value, " has handler: ", not this.handler.isNil()
   echo "  ".repeat(depth), this.value, " parameters: "
   for parameter in this.parameters:
     echo "  ".repeat(depth + 1), parameter
@@ -36,8 +36,8 @@ proc debug*(this: PathNode, depth: int) =
 
 proc debug*(this: Router) =
   echo "-------------"
-  echo "Router has not-found handler: ", not this.notFound.isNil
-  echo "Router has error handler: ", not this.error.isNil
+  echo "Router has not-found handler: ", not this.notFound.isNil()
+  echo "Router has error handler: ", not this.error.isNil()
   this.root.debug(1)
 
 proc defaultNotFound*(request: nhttp.Request, response: nhttp.Response)
@@ -48,19 +48,28 @@ proc defaultError*(request: nhttp.Request, response: nhttp.Response)
                   {.procvar.} =
   response.write(ERROR_CODE)
 
+proc getChild(this: PathNode, key: string): PathNode =
+  result = this.children.getOrDefault(key)
+
+proc isLast(this: seq[string], i: int): bool =
+  result = i == this.len() - 1
+
+proc hasHandler(this: PathNode): bool =
+  result = not this.handler.isNil()
+
 proc getRouteInfo(this: Router, routeComponents: seq[string],
                   request: nhttp.Request): RouteInfo =
   var currentNode = this.root
   var parameters = newSeq[string]()
   for i, routeComponent in routeComponents:
-    var child = currentNode.children.getOrDefault(routeComponent)
-    if child.isNil:
-      child = currentNode.children.getOrDefault(PARAMETER_KEYWORD)
-      if child.isNil:
+    var child = currentNode.getChild(routeComponent)
+    if child.isNil():
+      child = currentNode.getChild(PARAMETER_KEYWORD)
+      if child.isNil():
         return RouteInfo()
       parameters.add(routeComponent)
-    if i == routeComponents.len() - 1:
-      if not child.handler.isNil:
+    if routeComponents.isLast(i):
+      if child.hasHandler():
         return RouteInfo(pathNode: child, parameters: parameters)
       return RouteInfo()
     currentNode = child
@@ -74,19 +83,16 @@ proc initNode(value: string, handler: Handler): PathNode =
 proc isParameter(this: string): bool =
   result = this.startsWith(PARAMETER_PREFIX)
 
-proc getChild(this: PathNode, key: string): PathNode =
-  result = this.children.getOrDefault(key)
-
 proc addRoute(this: Router, routeComponents: seq[string], handler: Handler) =
   var currentNode = this.root
   var parameters = newSeq[string]()
   for i, routeComponent in routeComponents:
     var child = currentNode.getChild(routeComponent)
-    if child.isNil:
+    if child.isNil():
       if routeComponent.isParameter:
         parameters.add(routeComponent)
         child = currentNode.getChild(PARAMETER_KEYWORD)
-        if child.isNil:
+        if child.isNil():
           child = initNode(PARAMETER_KEYWORD, nil)
           currentNode.children[PARAMETER_KEYWORD] = child
       else:
@@ -103,7 +109,7 @@ proc handle*(this: Router, request: nhttp.Request, response: nhttp.Response) =
     let methd = request.m
     let routeComponents = (methd & path).split(PATH_SEPARATOR)
     let routeInfo = this.getRouteInfo(routeComponents, request)
-    if routeInfo.pathNode.isNil:
+    if routeInfo.pathNode.isNil():
       this.notFound(request, response)
     else:
       for i, parameter in routeInfo.parameters:
