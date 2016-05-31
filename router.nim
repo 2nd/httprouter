@@ -89,7 +89,7 @@ proc addRoute(this: Router, routeComponents: seq[string], handler: Handler) =
   for i, routeComponent in routeComponents:
     var child = currentNode.getChild(routeComponent)
     if child.isNil():
-      if routeComponent.isParameter:
+      if routeComponent.isParameter():
         parameters.add(routeComponent)
         child = currentNode.getChild(PARAMETER_KEYWORD)
         if child.isNil():
