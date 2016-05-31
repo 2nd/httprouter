@@ -32,8 +32,6 @@ proc getUsersCommentsHandler(request: nhttp.Request, response: nhttp.Response) =
 proc postUsersCommentsHandler(request: nhttp.Request, response: nhttp.Response) =
   request.body = "post users comments success"
 
-var socket = new(net.Socket)
-var response = newResponse(socket)
 
 suite "router":
 
@@ -146,3 +144,32 @@ suite "router":
     var response = newResponse(socket)
     testRouter.handle(request, response)
     check(request.body == "not found")
+
+  test "adding and retrieving a route with multiple parameters":
+    var testRouter = router.initRouter(notFound, error)
+    testRouter.add("GET", "/users/:id/:post", getUsersHandler)
+    var requestUri = uri.parseUri("http://example.com/users/100/hey")
+    var request = nhttp.Request(uri: requestUri, m: "GET", parameters: strtabs.newStringTable(strtabs.modeCaseInsensitive))
+    var socket = new(net.Socket)
+    var response = newResponse(socket)
+    testRouter.handle(request, response)
+    check(request.body == "get users success")
+    check(request.parameters[":id"] == "100")
+    check(request.parameters[":post"] == "hey")
+
+  test "adding and retrieving a route with multiple parameters on same level":
+    var testRouter = router.initRouter(notFound, error)
+    testRouter.add("GET", "/users/:id/posts", getUsersHandler)
+    testRouter.add("GET", "/users/:blah/posts/photos", getUsersPhotosHandler)
+    var requestUri = uri.parseUri("http://example.com/users/100/posts")
+    var request = nhttp.Request(uri: requestUri, m: "GET", parameters: strtabs.newStringTable(strtabs.modeCaseInsensitive))
+    var socket = new(net.Socket)
+    var response = newResponse(socket)
+    testRouter.handle(request, response)
+    check(request.body == "get users success")
+    check(request.parameters[":id"] == "100")
+    requestUri = uri.parseUri("http://example.com/users/100/posts/photos")
+    request = nhttp.Request(uri: requestUri, m: "GET", parameters: strtabs.newStringTable(strtabs.modeCaseInsensitive))
+    testRouter.handle(request, response)
+    check(request.body == "get users photos success")
+    check(request.parameters[":blah"] == "100")
