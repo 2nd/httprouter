@@ -39,12 +39,6 @@ proc debug*(this: Router) =
   echo "Router has error handler: ", not this.error.isNil
   this.root.debug(1)
 
-# proc findOrDefault(this: PathNode, condition: proc(s: string): bool): PathNode =
-#   for key, value in this.children.pairs:
-#     if condition(key):
-#       return value
-#   return nil
-
 proc getRouteInfo(this: Router, routeComponents: seq[string], request: nhttp.Request): RouteInfo =
   var currentNode = this.root
   var parameters = newSeq[string]()
@@ -61,23 +55,10 @@ proc getRouteInfo(this: Router, routeComponents: seq[string], request: nhttp.Req
       return RouteInfo()
     currentNode = child
 
-    #
-    #   child = currentNode.findOrDefault(proc(s: string): bool = s.startsWith(":"))
-    #   if child.isNil:
-    #     return this.notFound
-    # if i == routeComponents.len() - 1:
-    #   if not child.handler.isNil:
-    #     return child.handler
-    #   return this.notFound
-    # currentNode = child
-
 proc initNode(value: string, handler: Handler): PathNode =
   let children = tables.initTable[string, PathNode]()
   let parameters = newSeq[string]()
   result = PathNode(value: value, children: children, handler: handler, parameters: parameters)
-
-proc routeComponents(this: Router, methd: string, path: string): seq[string] =
-  result = (methd.toUpper() & path).split("/")
 
 proc addRoute(this: Router, routeComponents: seq[string], handler: Handler) =
   var currentNode = this.root
@@ -103,7 +84,8 @@ proc handle*(this: Router, request: nhttp.Request, response: nhttp.Response) =
   try:
     let path = request.uri.path
     let methd = request.m
-    let routeInfo = this.getRouteInfo(this.routeComponents(methd, path), request)
+    let routeComponents = (methd & path).split("/")
+    let routeInfo = this.getRouteInfo(routeComponents, request)
     if routeInfo.pathNode.isNil:
       this.notFound(request, response)
     else:
@@ -114,7 +96,8 @@ proc handle*(this: Router, request: nhttp.Request, response: nhttp.Response) =
     this.error(request, response)
 
 proc add*(this: var Router, methd: string, path: string, handler: Handler) =
-  this.addRoute(this.routeComponents(methd, path), handler)
+  let routeComponents = (methd.toUpper() & path).split("/")
+  this.addRoute(routeComponents, handler)
 
 proc initRouter*(notFound: Handler = defaultNotFound, error: Handler = defaultError): Router =
   let children = tables.initTable[string, PathNode]()
