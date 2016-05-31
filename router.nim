@@ -1,5 +1,12 @@
 import strutils, tables, nhttp, uri, strtabs
 
+const PARAMETER_KEYWORD = "parameter"
+const PATH_SEPARATOR = "/"
+const ROOT_VALUE = "root"
+const PARAMETER_PREFIX = ":"
+const NOT_FOUND_CODE = 404
+const ERROR_CODE = 500
+
 type
   Router* = object
     root: PathNode
@@ -18,12 +25,6 @@ type
 
   Handler* = proc(request: nhttp.Request, response: nhttp.Response)
 
-proc defaultNotFound*(request: nhttp.Request, response: nhttp.Response) {.procvar.} =
-  response.write(404)
-
-proc defaultError*(request: nhttp.Request, response: nhttp.Response) {.procvar.} =
-  response.write(500)
-
 proc debug*(this: PathNode, depth: int) =
   echo "-------------"
   echo "  ".repeat(depth), this.value, " has handler: ", not this.handler.isNil
@@ -39,13 +40,22 @@ proc debug*(this: Router) =
   echo "Router has error handler: ", not this.error.isNil
   this.root.debug(1)
 
-proc getRouteInfo(this: Router, routeComponents: seq[string], request: nhttp.Request): RouteInfo =
+proc defaultNotFound*(request: nhttp.Request, response: nhttp.Response)
+                    {.procvar.} =
+  response.write(NOT_FOUND_CODE)
+
+proc defaultError*(request: nhttp.Request, response: nhttp.Response)
+                  {.procvar.} =
+  response.write(ERROR_CODE)
+
+proc getRouteInfo(this: Router, routeComponents: seq[string],
+                  request: nhttp.Request): RouteInfo =
   var currentNode = this.root
   var parameters = newSeq[string]()
   for i, routeComponent in routeComponents:
     var child = currentNode.children.getOrDefault(routeComponent)
     if child.isNil:
-      child = currentNode.children.getOrDefault("parameter")
+      child = currentNode.children.getOrDefault(PARAMETER_KEYWORD)
       if child.isNil:
         return RouteInfo()
       parameters.add(routeComponent)
@@ -58,20 +68,27 @@ proc getRouteInfo(this: Router, routeComponents: seq[string], request: nhttp.Req
 proc initNode(value: string, handler: Handler): PathNode =
   let children = tables.initTable[string, PathNode]()
   let parameters = newSeq[string]()
-  result = PathNode(value: value, children: children, handler: handler, parameters: parameters)
+  result = PathNode(value: value, children: children, handler: handler,
+                    parameters: parameters)
+
+proc isParameter(this: string): bool =
+  result = this.startsWith(PARAMETER_PREFIX)
+
+proc getChild(this: PathNode, key: string): PathNode =
+  result = this.children.getOrDefault(key)
 
 proc addRoute(this: Router, routeComponents: seq[string], handler: Handler) =
   var currentNode = this.root
   var parameters = newSeq[string]()
   for i, routeComponent in routeComponents:
-    var child = currentNode.children.getOrDefault(routeComponent)
+    var child = currentNode.getChild(routeComponent)
     if child.isNil:
-      if routeComponent.startsWith(":"):
+      if routeComponent.isParameter:
         parameters.add(routeComponent)
-        child = currentNode.children.getOrDefault("parameter")
+        child = currentNode.getChild(PARAMETER_KEYWORD)
         if child.isNil:
-          child = initNode("parameter", nil)
-          currentNode.children["parameter"] = child
+          child = initNode(PARAMETER_KEYWORD, nil)
+          currentNode.children[PARAMETER_KEYWORD] = child
       else:
         child = initNode(routeComponent, nil)
         currentNode.children[routeComponent] = child
@@ -84,7 +101,7 @@ proc handle*(this: Router, request: nhttp.Request, response: nhttp.Response) =
   try:
     let path = request.uri.path
     let methd = request.m
-    let routeComponents = (methd & path).split("/")
+    let routeComponents = (methd & path).split(PATH_SEPARATOR)
     let routeInfo = this.getRouteInfo(routeComponents, request)
     if routeInfo.pathNode.isNil:
       this.notFound(request, response)
@@ -96,11 +113,12 @@ proc handle*(this: Router, request: nhttp.Request, response: nhttp.Response) =
     this.error(request, response)
 
 proc add*(this: var Router, methd: string, path: string, handler: Handler) =
-  let routeComponents = (methd.toUpper() & path).split("/")
+  let routeComponents = (methd.toUpper() & path).split(PATH_SEPARATOR)
   this.addRoute(routeComponents, handler)
 
-proc initRouter*(notFound: Handler = defaultNotFound, error: Handler = defaultError): Router =
+proc initRouter*(notFound: Handler = defaultNotFound,
+                error: Handler = defaultError): Router =
   let children = tables.initTable[string, PathNode]()
-  result.root = PathNode(value: "root", children: children)
+  result.root = PathNode(value: ROOT_VALUE, children: children)
   result.notFound = notFound
   result.error = error
