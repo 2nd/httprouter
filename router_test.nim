@@ -1,165 +1,172 @@
 import router, nhttp, unittest, uri, tables, httpclient, strutils, strtabs, net
 
-proc error(request: nhttp.Request, response: nhttp.Response) =
-  request.body = "error"
+proc error(req: nhttp.Request, res: nhttp.Response) =
+  req.body = "error"
 
-proc handlerWithError(request: nhttp.Request, response: nhttp.Response) =
+proc handlerWithError(req: nhttp.Request, res: nhttp.Response) =
   var x = @[1, 2, 3]
   echo x[3]
-  request.body = "handler with error failure"
+  req.body = "handler with error failure"
 
-proc notFound(request: nhttp.Request, response: nhttp.Response) =
-  request.body = "not found"
+proc notFound(req: nhttp.Request, res: nhttp.Response) =
+  req.body = "not found"
 
-proc rootGetHandler(request: nhttp.Request, response: nhttp.Response) =
-  request.body = "root get success"
+proc rootGetHandler(req: nhttp.Request, res: nhttp.Response) =
+  req.body = "root get success"
 
-proc getUsersParameterHandler(request: nhttp.Request, response: nhttp.Response) =
-  request.body = "get users parameter success"
+proc getUsersParameterHandler(req: nhttp.Request, res: nhttp.Response) =
+  req.body = "get users parameter success"
 
-proc getUsersHandler(request: nhttp.Request, response: nhttp.Response) =
-  request.body = "get users success"
+proc getUsersHandler(req: nhttp.Request, res: nhttp.Response) =
+  req.body = "get users success"
 
-proc getUsersPhotosHandler(request: nhttp.Request, response: nhttp.Response) =
-  request.body = "get users photos success"
+proc getUsersPhotosHandler(req: nhttp.Request, res: nhttp.Response) =
+  req.body = "get users photos success"
 
-proc getUsersUsersHandler(request: nhttp.Request, response: nhttp.Response) =
-  request.body = "get users users success"
+proc getUsersUsersHandler(req: nhttp.Request, res: nhttp.Response) =
+  req.body = "get users users success"
 
-proc getUsersCommentsHandler(request: nhttp.Request, response: nhttp.Response) =
-  request.body = "get users comments success"
+proc getUsersCommentsHandler(req: nhttp.Request, res: nhttp.Response) =
+  req.body = "get users comments success"
 
-proc postUsersCommentsHandler(request: nhttp.Request, response: nhttp.Response) =
-  request.body = "post users comments success"
-
+proc postUsersCommentsHandler(req: nhttp.Request, res: nhttp.Response) =
+  req.body = "post users comments success"
 
 suite "router":
 
+  var server = nhttp.Server()
+
   test "adding and retrieving single route":
-    var testRouter = router.initRouter(notFound, error)
+    var testRouter = router.initRouter(server)
     testRouter.add("GET", "/users/comments", getUsersCommentsHandler)
-    var requestUri = uri.parseUri("http://example.com/users/comments")
-    var request = nhttp.Request(uri: requestUri, m: "GET")
-    var response = nhttp.Response()
-    testRouter.handle(request, response)
-    check(request.body == "get users comments success")
+
+    let reqUri = uri.parseUri("http://secondspectrum.com/users/comments")
+    let req = nhttp.Request(uri: reqUri, m: "GET")
+    server.handler(req, nhttp.Response())
+
+    check(req.body == "get users comments success")
 
   test "adding and retrieving two routes with same initial path component":
-    var testRouter = router.initRouter(notFound, error)
+    var testRouter = router.initRouter(server)
     testRouter.add("GET", "/users/comments", getUsersCommentsHandler)
     testRouter.add("GET", "/users/photos", getUsersPhotosHandler)
-    var requestUri = uri.parseUri("http://example.com/users/comments")
-    var request = nhttp.Request(uri: requestUri, m: "GET")
-    var response = nhttp.Response()
-    testRouter.handle(request, response)
-    check(request.body == "get users comments success")
-    requestUri = uri.parseUri("http://example.com/users/photos")
-    request = nhttp.Request(uri: requestUri, m: "GET")
-    testRouter.handle(request, response)
-    check(request.body == "get users photos success")
+
+    var reqUri = uri.parseUri("http://secondspectrum.com/users/comments")
+    var req = nhttp.Request(uri: reqUri, m: "GET")
+    server.handler(req, nhttp.Response())
+
+    check(req.body == "get users comments success")
+    reqUri = uri.parseUri("http://secondspectrum.com/users/photos")
+    req = nhttp.Request(uri: reqUri, m: "GET")
+
+    server.handler(req, nhttp.Response())
+    check(req.body == "get users photos success")
 
   test "adding and retrieving two routes with same path and different method":
-    var testRouter = router.initRouter(notFound, error)
+    var testRouter = router.initRouter(server)
     testRouter.add("GET", "/users/comments", getUsersCommentsHandler)
     testRouter.add("POST", "/users/comments", postUsersCommentsHandler)
-    var requestUri = uri.parseUri("http://example.com/users/comments")
-    var request = nhttp.Request(uri: requestUri, m: "POST")
-    var response = nhttp.Response()
-    testRouter.handle(request, response)
-    check(request.body == "post users comments success")
-    requestUri = uri.parseUri("http://example.com/users/comments")
-    request = nhttp.Request(uri: requestUri, m: "GET")
-    testRouter.handle(request, response)
-    check(request.body == "get users comments success")
+
+    var reqUri = uri.parseUri("http://secondspectrum.com/users/comments")
+    var req = nhttp.Request(uri: reqUri, m: "POST")
+    server.handler(req, nhttp.Response())
+    check(req.body == "post users comments success")
+
+    reqUri = uri.parseUri("http://secondspectrum.com/users/comments")
+    req = nhttp.Request(uri: reqUri, m: "GET")
+    server.handler(req, nhttp.Response())
+    check(req.body == "get users comments success")
 
   test "adding and retrieving two routes with same path names on different levels":
-    var testRouter = router.initRouter(notFound, error)
+    var testRouter = router.initRouter(server)
     testRouter.add("GET", "/users", getUsersHandler)
     testRouter.add("GET", "/users/users", getUsersUsersHandler)
-    var requestUri = uri.parseUri("http://example.com/users")
-    var request = nhttp.Request(uri: requestUri, m: "GET")
-    var response = nhttp.Response()
-    testRouter.handle(request, response)
-    check(request.body == "get users success")
-    requestUri = uri.parseUri("http://example.com/users/users")
-    request = nhttp.Request(uri: requestUri, m: "GET")
-    testRouter.handle(request, response)
-    check(request.body == "get users users success")
+
+    var reqUri = uri.parseUri("http://secondspectrum.com/users")
+    var req = nhttp.Request(uri: reqUri, m: "GET")
+    server.handler(req, nhttp.Response())
+    check(req.body == "get users success")
+
+    reqUri = uri.parseUri("http://secondspectrum.com/users/users")
+    req = nhttp.Request(uri: reqUri, m: "GET")
+    server.handler(req, nhttp.Response())
+    check(req.body == "get users users success")
 
   test "adding and retrieving root route":
-    var testRouter = router.initRouter(notFound, error)
+    var testRouter = router.initRouter(server)
     testRouter.add("GET", "/", rootGetHandler)
-    var requestUri = uri.parseUri("http://example.com/")
-    var request = nhttp.Request(uri: requestUri, m: "GET")
-    var response = nhttp.Response()
-    testRouter.handle(request, response)
-    check(request.body == "root get success")
+
+    var reqUri = uri.parseUri("http://secondspectrum.com/")
+    var req = nhttp.Request(uri: reqUri, m: "GET")
+    server.handler(req, nhttp.Response())
+    check(req.body == "root get success")
 
   test "catching an error in handler and calling error handler":
-    var testRouter = router.initRouter(notFound, error)
+    var testRouter = router.initRouter(server, error = error)
     testRouter.add("GET", "/error", handlerWithError)
-    var requestUri = uri.parseUri("http://example.com/error")
-    var request = nhttp.Request(uri: requestUri, m: "GET")
-    var response = nhttp.Response()
-    testRouter.handle(request, response)
-    check(request.body == "error")
+
+    var reqUri = uri.parseUri("http://secondspectrum.com/error")
+    var req = nhttp.Request(uri: reqUri, m: "GET")
+    server.handler(req, nhttp.Response())
+    check(req.body == "error")
 
   test "adding and retrieving a route with a parameter":
-    var testRouter = router.initRouter(notFound, error)
+    var testRouter = router.initRouter(server, notFound = notFound)
     testRouter.add("GET", "/users/:id", getUsersParameterHandler)
-    var requestUri = uri.parseUri("http://example.com/users/100")
-    var request = nhttp.Request(uri: requestUri, m: "GET", parameters: strtabs.newStringTable(strtabs.modeCaseInsensitive))
-    var response = nhttp.Response()
-    testRouter.handle(request, response)
-    check(request.body == "get users parameter success")
-    check(request.parameters[":id"] == "100")
-    requestUri = uri.parseUri("http://example.com/users")
-    request = nhttp.Request(uri: requestUri, m: "GET")
-    testRouter.handle(request, response)
-    check(request.body == "not found")
+
+    var reqUri = uri.parseUri("http://secondspectrum.com/users/100")
+    var req = nhttp.Request(uri: reqUri, m: "GET", params: strtabs.newStringTable(strtabs.modeCaseInsensitive))
+    server.handler(req, nhttp.Response())
+    check(req.body == "get users parameter success")
+    check(req.params[":id"] == "100")
+
+    reqUri = uri.parseUri("http://secondspectrum.com/users")
+    req = nhttp.Request(uri: reqUri, m: "GET")
+    server.handler(req, nhttp.Response())
+    check(req.body == "not found")
 
   test "retrieving not found if a route terminates on a node with no handler":
-    var testRouter = router.initRouter(notFound, error)
+    var testRouter = router.initRouter(server, notFound = notFound)
     testRouter.add("GET", "/users/comments", getUsersCommentsHandler)
-    var requestUri = uri.parseUri("http://example.com/users")
-    var request = nhttp.Request(uri: requestUri, m: "GET")
 
-    var response = nhttp.Response()
-    testRouter.handle(request, response)
-    check(request.body == "not found")
+    var reqUri = uri.parseUri("http://secondspectrum.com/users")
+    var req = nhttp.Request(uri: reqUri, m: "GET")
+    server.handler(req, nhttp.Response())
+    check(req.body == "not found")
 
   test "retrieving not found if a route is invalid":
-    var testRouter = router.initRouter(notFound, error)
+    var testRouter = router.initRouter(server, notFound = notFound)
     testRouter.add("GET", "/users/comments", getUsersCommentsHandler)
-    var requestUri = uri.parseUri("http://example.com/users/commentss")
-    var request = nhttp.Request(uri: requestUri, m: "GET")
-    var response = nhttp.Response()
-    testRouter.handle(request, response)
-    check(request.body == "not found")
 
-  test "adding and retrieving a route with multiple parameters":
-    var testRouter = router.initRouter(notFound, error)
+    var reqUri = uri.parseUri("http://secondspectrum.com/users/commentss")
+    var req = nhttp.Request(uri: reqUri, m: "GET")
+    server.handler(req, nhttp.Response())
+    check(req.body == "not found")
+
+  test "adding and retrieving a route sz multiple parameters":
+    var testRouter = router.initRouter(server)
     testRouter.add("GET", "/users/:id/:post", getUsersHandler)
-    var requestUri = uri.parseUri("http://example.com/users/100/hey")
-    var request = nhttp.Request(uri: requestUri, m: "GET", parameters: strtabs.newStringTable(strtabs.modeCaseInsensitive))
-    var response = nhttp.Response()
-    testRouter.handle(request, response)
-    check(request.body == "get users success")
-    check(request.parameters[":id"] == "100")
-    check(request.parameters[":post"] == "hey")
+
+    var reqUri = uri.parseUri("http://secondspectrum.com/users/100/hey")
+    var req = nhttp.Request(uri: reqUri, m: "GET", params: strtabs.newStringTable(strtabs.modeCaseInsensitive))
+    server.handler(req, nhttp.Response())
+    check(req.body == "get users success")
+    check(req.params[":id"] == "100")
+    check(req.params[":post"] == "hey")
 
   test "adding and retrieving a route with multiple parameters on same level":
-    var testRouter = router.initRouter(notFound, error)
+    var testRouter = router.initRouter(server)
     testRouter.add("GET", "/users/:id/posts", getUsersHandler)
     testRouter.add("GET", "/users/:blah/posts/photos", getUsersPhotosHandler)
-    var requestUri = uri.parseUri("http://example.com/users/100/posts")
-    var request = nhttp.Request(uri: requestUri, m: "GET", parameters: strtabs.newStringTable(strtabs.modeCaseInsensitive))
-    var response = nhttp.Response()
-    testRouter.handle(request, response)
-    check(request.body == "get users success")
-    check(request.parameters[":id"] == "100")
-    requestUri = uri.parseUri("http://example.com/users/100/posts/photos")
-    request = nhttp.Request(uri: requestUri, m: "GET", parameters: strtabs.newStringTable(strtabs.modeCaseInsensitive))
-    testRouter.handle(request, response)
-    check(request.body == "get users photos success")
-    check(request.parameters[":blah"] == "100")
+
+    var reqUri = uri.parseUri("http://secondspectrum.com/users/100/posts")
+    var req = nhttp.Request(uri: reqUri, m: "GET", params: strtabs.newStringTable(strtabs.modeCaseInsensitive))
+    server.handler(req, nhttp.Response())
+    check(req.body == "get users success")
+    check(req.params[":id"] == "100")
+
+    reqUri = uri.parseUri("http://secondspectrum.com/users/100/posts/photos")
+    req = nhttp.Request(uri: reqUri, m: "GET", params: strtabs.newStringTable(strtabs.modeCaseInsensitive))
+    server.handler(req, nhttp.Response())
+    check(req.body == "get users photos success")
+    check(req.params[":blah"] == "100")
